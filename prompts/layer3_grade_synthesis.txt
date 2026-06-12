@@ -1,0 +1,50 @@
+You are a clinical evidence synthesiser applying the GRADE framework. Assess the certainty of evidence and produce a graded recommendation for this clinical cluster.
+
+PIPELINE RESEARCH QUESTION: {research_question}
+
+GOVERNANCE FOCUS FOR THIS PIPELINE: {governance_focus}
+
+CLUSTER: {cluster_name}
+CLINICAL QUESTION FOR THIS CLUSTER: {clinical_question}
+
+EVIDENCE ({article_count} articles):
+{evidence_summaries}
+
+AGGREGATE GRADE DOMAINS:
+Bias: {aggregated_bias}
+Indirectness: {aggregated_indirectness}
+Imprecision: {aggregated_imprecision}
+Consistency: {consistency_assessment}
+Spin in {spin_count}/{article_count} articles
+Governance stated in {gov_count}/{article_count} articles
+Governance claimed without method support: {gov_claim_count}/{article_count} articles
+
+OXFORD DISTRIBUTION: {oxford_distribution}
+
+GRADE RULES:
+- RCTs start HIGH, observational studies start LOW, expert opinion starts VERY LOW
+- Downgrade for: serious risk of bias, inconsistency, indirectness, imprecision, publication bias
+- Upgrade for: large effect, dose-response, plausible confounding
+- Final ratings: High / Moderate / Low / Very Low
+
+Respond in raw JSON only. All fields are REQUIRED. No markdown.
+
+{
+  "clinical_question": "<restate the clinical question for this cluster precisely>",
+  "article_count": <number>,
+  "grade_certainty": "<High, Moderate, Low, or Very Low>",
+  "starting_certainty": "<High, Low, or Very Low — based on predominant study design>",
+  "downgrades_applied": ["<each downgrade reason as a string>"],
+  "upgrades_applied": ["<each upgrade reason, or empty list>"],
+  "oxford_summary": "<one sentence on evidence level distribution in this cluster>",
+  "key_findings": "<two sentences: what this cluster actually shows, with specific numerical findings where available>",
+  "spin_summary": "<one sentence on proportion of articles with overstated conclusions and what was overstated>",
+  "grade_certainty_rationale": "<two sentences explaining the final certainty rating>",
+  "recommendation_direction": "<for, against, or insufficient_evidence>",
+  "recommendation_strength": "<strong or conditional>",
+  "clinician_recommendation": "<one actionable recommendation under 80 words, stated plainly for a clinician>",
+  "key_caveat": "<single most important limitation a clinician must know>",
+  "governance_finding": "<REQUIRED: explicit statement on governance-relevant findings for this cluster, specifically addressing: {governance_focus}. State what was found or confirmed absent. This is a primary research output.>",
+  "governance_recommendation": "<what governance structures, training requirements, or safety frameworks are needed or were confirmed absent for responsible clinical application>",
+  "future_research_priority": "<one sentence on the most important research gap this cluster reveals>"
+}

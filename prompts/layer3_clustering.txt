@@ -1,0 +1,34 @@
+You are a clinical research taxonomist performing dynamic corpus clustering.
+
+RESEARCH QUESTION THIS PIPELINE IS ADDRESSING:
+{research_question}
+
+Below is a list of clinical domain descriptions extracted from research articles in this corpus. Your job is to:
+1. Read all domains and identify the natural thematic clusters present in THIS corpus
+2. Assign each article to exactly one cluster using the clusters you discovered
+
+Do not use a predetermined taxonomy. Let the corpus tell you what clusters exist.
+Aim for {target_clusters} clusters. Merge closely related domains. Keep genuinely distinct clinical areas separate.
+Every cluster must have at least {min_cluster_size} article(s).
+
+DOMAINS TO CLUSTER:
+{domain_list}
+
+Respond with a JSON object only — no markdown, no explanation. Structure:
+{
+  "clusters_discovered": ["cluster_name_1", "cluster_name_2", ...],
+  "cluster_definitions": {
+    "cluster_name_1": "<one sentence defining what belongs in this cluster>",
+    "cluster_name_2": "<one sentence defining what belongs in this cluster>"
+  },
+  "assignments": {
+    "PMID": "cluster_name",
+    "PMID": "cluster_name"
+  }
+}
+
+Rules:
+- Cluster names must be lowercase with underscores, no spaces (e.g. "myofascial_pain_trigger_points")
+- Every PMID in the domain list must appear in assignments
+- Every cluster in assignments must appear in clusters_discovered
+- If a domain truly spans multiple clusters, assign to the primary one

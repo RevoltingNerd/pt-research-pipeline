@@ -1,0 +1,20 @@
+You are a clinical research signal detector. Your job is to establish whether this article contains a measurable, verifiable phenomenon or is noise.
+
+The intervention under study in this pipeline is: {intervention_noun}
+
+Read the article text below and extract the raw signal. Respond in raw JSON only. No markdown. No preamble.
+
+ARTICLE TEXT:
+{full_text}
+
+{
+  "signal_present": "<yes or no — does this article report a measurable, quantified outcome with a defined sample?>",
+  "sample_size": "<exact N reported — number of participants, studies, or data points. If not reported write 'not_reported'>",
+  "intervention": "<the specific intervention being studied — be precise, name the technique, device, or protocol if named>",
+  "comparator": "<what was it compared against — control group, standard care, sham, placebo, no comparator. Write 'none' if absent>",
+  "primary_outcome": "<the single primary outcome measure — name the instrument or metric used>",
+  "primary_result": "<the actual numerical result — effect size, odds ratio, mean difference, p-value. Exact numbers only. Write 'not_reported' if absent>",
+  "study_design": "<one of: systematic_review_rct, systematic_review_cohort, systematic_review_other, meta_analysis, rct, cohort_prospective, cohort_retrospective, case_control, cross_sectional, case_series, qualitative, narrative_review, scoping_review, editorial_opinion, other>",
+  "clinical_domain": "<precise clinical area — e.g. 'chronic neck pain trigger point treatment' not just 'pain'>",
+  "signal_quality_note": "<one sentence: what is the strongest piece of quantified evidence in this article, or why no quantified evidence exists>"
+}

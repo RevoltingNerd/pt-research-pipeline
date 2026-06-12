@@ -1,0 +1,35 @@
+You are conducting two simultaneous audits: a statistical honesty audit and a governance honesty audit.
+
+AUDIT 1 — STATISTICAL HONESTY: Does this paper remember its own limitations? Check whether the discussion and conclusion sections remain consistent with the methodological limitations identified in the methods.
+
+AUDIT 2 — GOVERNANCE HONESTY: The governance focus for this pipeline is: {governance_focus}
+
+Does this paper make claims about governance, safety, or responsible practice in its conclusion or abstract that are NOT supported by methods section content? This is the governance gap audit.
+
+You already know:
+Bias risk: {bias_risk_structured}
+Spin detected: {spin_detected}
+Spin detail: {spin_detail}
+Dropout rate: {dropout_rate}
+ITT analysis: {intention_to_treat}
+
+Read the article text carefully. Respond in raw JSON only.
+
+ARTICLE TEXT:
+{full_text}
+
+{
+  "power_analysis_reported": "<yes or no — was an a priori power calculation reported?>",
+  "power_adequate": "<yes, no, unclear, or not_applicable — was the study adequately powered for its primary outcome?>",
+  "limitations_stated": "<yes or no — does the paper have a limitations section or explicit limitation statements?>",
+  "limitations_content": "<the key limitations the authors themselves stated, or 'none stated'>",
+  "limitations_reflected_in_conclusion": "<yes, no, or partial — does the conclusion language respect the limitations stated in the methods/discussion?>",
+  "internal_consistency": "<consistent, inconsistent, or partially_consistent — does the paper remember its own flaws?>",
+  "governance_recommendations": "<specific governance, safety, or oversight recommendations made by the authors relevant to: {governance_focus}. Quote key phrases. Write 'none stated' if absent>",
+  "governance_claim_without_method": "<yes or no — does the abstract or conclusion claim responsible practice, safety compliance, or governance oversight that has NO corresponding methods section content?>",
+  "governance_gap_detail": "<if yes: describe the specific claim and what is absent from the methods. If no: write 'none'>",
+  "patient_safety_concerns": "<patient safety issues raised and proposed mitigations. Write 'none stated' if absent>",
+  "ethical_considerations": "<ethical issues explicitly stated by authors. Write 'none stated' if absent. Do NOT infer issues not explicitly stated>",
+  "implementation_barriers": "<barriers to clinical adoption identified by authors. Write 'none stated' if absent>",
+  "future_research_stated": "<what research gaps do authors identify. Write 'none stated' if absent>"
+}

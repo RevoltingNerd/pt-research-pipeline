@@ -1,0 +1,115 @@
+# PT Research Pipeline v2 — Configuration
+# Copy this file to config.yaml and fill in your values.
+# config.yaml is gitignored — never commit it.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# UNIVERSAL DESIGN PRINCIPLE
+# To run this pipeline on a NEW topic you change THIS FILE ONLY.
+# Everything topic-specific lives in `research_question`, `topic`, and `feeds`.
+# No topic name, model name, or cluster taxonomy is hardcoded in the code.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── The research question ────────────────────────────────────────────────────
+# The master steering string, phrased as a scoping-review question. It is shown
+# to the synthesis layers and printed on the final report.
+research_question: >
+  What does the peer-reviewed literature report regarding the clinical
+  effectiveness, safety, and implementation of dry needling in physical
+  therapy and rehabilitation, and what governance frameworks or clinical
+  guidelines exist for its responsible application?
+
+
+# ── Topic framing variables ──────────────────────────────────────────────────
+# These four values are injected into the LLM prompts at every layer. They are
+# the ONLY place the pipeline learns what your topic is. Keep them concrete.
+topic:
+
+  # Short human label. Used in report titles, Excel sheet names, and logs.
+  short_name: "dry needling"
+
+  # The single sentence the Layer 0 screener uses to decide whether an article
+  # is in-scope. Be specific: name the intervention, the synonyms an author
+  # might use, and the clinical setting. This replaces the old hardcoded
+  # "is this about AI/ML in physical therapy" gate.
+  relevance_criterion: >
+    The article concerns dry needling, intramuscular stimulation, or
+    trigger-point needling as an intervention in physical therapy,
+    rehabilitation, or musculoskeletal care.
+
+  # The generic noun for "the thing being studied", injected into the appraisal
+  # stages. Replaces the old hardcoded "AI/robotic system".
+  intervention_noun: "dry needling intervention"
+
+  # What "governance" means for THIS topic. For an AI topic this was
+  # "responsible AI deployment and oversight". For a procedural intervention it
+  # is usually scope of practice, training, adverse-event reporting, and
+  # regulation. Injected into the governance audit (Stage 6), the synthesis
+  # (Stage 7), and the Layer 3 GRADE synthesis.
+  governance_focus: >
+    scope of practice, training and competency requirements, adverse-event
+    reporting and patient safety, and regulatory or professional oversight
+
+
+# ── PubMed RSS feeds ─────────────────────────────────────────────────────────
+# Generate each RSS URL in PubMed (Create RSS → max 100 items). Apply the
+# "free full text" filter to every feed — the pipeline requires PMC Open Access
+# full text and will skip articles that lack it at Layer 2.
+feeds:
+  - url: "PASTE_FEED_A_RSS_URL_HERE"
+    name: "feed_a"
+    description: "High evidence synthesis — systematic reviews and meta-analyses"
+  - url: "PASTE_FEED_B_RSS_URL_HERE"
+    name: "feed_b"
+    description: "Clinical trials and implementation — RCTs, cohorts, case series"
+  - url: "PASTE_FEED_C_RSS_URL_HERE"
+    name: "feed_c"
+    description: "Governance, safety, and scope of practice"
+
+
+# ── PubMed E-utilities ───────────────────────────────────────────────────────
+pubmed_api:
+  base_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+  email: "your@email.com"
+  api_key: ""   # optional — raises the rate limit from 3 to 10 requests/sec
+
+
+# ── Models (Ollama) ──────────────────────────────────────────────────────────
+# Each layer names its own model. Every runner reads its model from the key
+# below — no model name is hardcoded in the pipeline code.
+model:
+  layer0: "phi4:14b-q4_K_M"      # fast screening              — ~9 GB RAM
+  layer2: "qwen2.5:14b"          # 7-stage deep appraisal      — ~9 GB RAM
+  layer3: "llama-stable:latest"  # clustering + GRADE synthesis — ~42 GB RAM
+  base_url: "http://localhost:11434"
+
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+paths:
+  full_text_cache: "cache/full_text"
+  summaries_layer0: "summaries/layer0"
+  summaries_layer2: "summaries/deep"
+  summaries_layer3: "summaries/layer3"
+  ledger: "ledger.csv"
+  layer0_ledger: "layer0_ledger.csv"
+  layer2_ledger: "layer2_ledger.csv"
+  layer3_ledger: "layer3_ledger.csv"
+
+
+# ── Pipeline tuning ──────────────────────────────────────────────────────────
+pipeline:
+  layer0_char_limit: 8000
+  layer2_text_slices:
+    stage1: [0, 4000]
+    stage2: [0, 4000]
+    stage3: null
+    stage4: [2000, 6000]
+    stage5: [2000, 6000]
+    stage6: [4000, 8000]
+    stage7: null
+
+  # Dynamic clustering (Phase 3 rebuild). "auto" lets the model decide how many
+  # natural clusters the corpus contains; or set an integer to force a count.
+  layer3_target_clusters: "auto"
+  layer3_max_clusters: 20
+  layer3_min_cluster_size: 1

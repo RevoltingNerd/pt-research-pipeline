@@ -1,0 +1,13 @@
+config.yaml
+cache/
+summaries/
+logs/
+*.csv
+*.xlsx
+.pipeline_checkpoint.json
+.pipeline.lock
+__pycache__/
+*.pyc
+venv/
+.venv/
+.DS_Store
