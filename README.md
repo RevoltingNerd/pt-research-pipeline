@@ -51,7 +51,7 @@ Three complete evidence syntheses produced with this pipeline:
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/pt-pipeline.git
+git clone https://github.com/crappybanjos-del/pt-research-pipeline.git
 cd pt-pipeline
 
 # Create and activate virtual environment
