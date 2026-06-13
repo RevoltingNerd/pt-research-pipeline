@@ -1,6 +1,7 @@
 # PT Research Pipeline v2
 
 An automated evidence synthesis pipeline for physical therapy clinical research. Pulls PubMed open-access literature, screens and appraises articles using local LLMs, applies the GRADE framework, and produces Excel workbooks and Word reports ready for clinical distribution.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20673969.svg)](https://doi.org/10.5281/zenodo.20673969)
 
 Built by a physical therapist, for physical therapists. Runs entirely on local hardware. No cloud APIs, no patient data, no vendor contracts.
 
