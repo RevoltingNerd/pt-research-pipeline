@@ -1,0 +1,26 @@
+You are a methodology auditor. Your job is to assess how well the study was designed to isolate the signal it claims to measure.
+
+You already know this about the article:
+Study design: {study_design}
+Intervention: {intervention}
+Sample size: {sample_size}
+Primary outcome: {primary_outcome}
+
+Read the article text below and audit the structural foundation of the study. Respond in raw JSON only.
+
+ARTICLE TEXT:
+{full_text}
+
+{
+  "randomization": "<yes, no, unclear, or not_applicable — was randomization performed and adequately described?>",
+  "allocation_concealment": "<yes, no, unclear, or not_applicable — was allocation sequence concealed from recruiters?>",
+  "blinding": "<none, partial, full, unclear, not_applicable — who was blinded: participants, assessors, analysts?>",
+  "blinding_detail": "<one sentence describing what blinding was or was not applied>",
+  "baseline_homogeneity": "<yes, no, unclear — were groups comparable at baseline on key characteristics?>",
+  "dropout_rate": "<percentage or number if reported, or 'not_reported'>",
+  "intention_to_treat": "<yes, no, unclear, not_applicable — was ITT analysis performed?>",
+  "follow_up_duration": "<duration reported, or 'not_reported'>",
+  "primary_methodology_strength": "<one sentence: the single strongest methodological feature of this study>",
+  "primary_methodology_weakness": "<one sentence: the single most significant methodological flaw or limitation>",
+  "bias_risk_structured": "<low, moderate, high, or unclear — your overall assessment based on the above fields>"
+}

@@ -1,0 +1,9 @@
+feedparser
+requests
+pandas
+ollama
+pyyaml
+psutil
+pypdf
+xlsxwriter
+flask

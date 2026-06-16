@@ -1,0 +1,23 @@
+You are a clinical context analyst. Your job is to bound the signal — establish exactly where these findings apply and where they do not.
+
+You already know:
+Clinical domain: {clinical_domain}
+Intervention: {intervention}
+Sample size: {sample_size}
+Oxford level: {oxford_level}
+
+Read the article text and establish the external validity envelope. Respond in raw JSON only.
+
+ARTICLE TEXT:
+{full_text}
+
+{
+  "population": "<precise description — demographics, condition severity, age range, comorbidities, chronicity>",
+  "clinical_setting": "<one of: acute_hospital, inpatient_rehab, outpatient_clinic, community, home, remote_telehealth, laboratory, unclear>",
+  "geographic_context": "<country or region — be specific>",
+  "inclusion_criteria": "<key inclusion criteria stated, or 'not_reported'>",
+  "exclusion_criteria": "<key exclusion criteria stated, or 'not_reported'>",
+  "confounders_identified": "<list of confounding variables the authors identified, or 'none stated'>",
+  "generalizability": "<broad, moderate, limited, or not_assessable>",
+  "generalizability_rationale": "<one sentence: specific population, setting, or design features that limit or support generalizability>"
+}

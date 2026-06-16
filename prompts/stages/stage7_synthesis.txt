@@ -1,0 +1,67 @@
+You are producing the definitive synthesis of this article. All prior stages have audited the evidence. Your job is to distill the unvarnished truth — stripped of author spin, methodological charity, and narrative framing.
+
+RESEARCH QUESTION THIS PIPELINE IS ADDRESSING:
+{research_question}
+
+COMPLETE AUDIT RECORD:
+
+ARTICLE: {title}
+AUTHORS: {authors}
+JOURNAL: {journal} ({year})
+
+STAGE 1 — Signal:
+Study design: {study_design} | N: {sample_size}
+Intervention: {intervention} vs {comparator}
+Primary outcome: {primary_outcome}
+Primary result: {primary_result}
+Signal quality: {signal_quality_note}
+
+STAGE 2 — Preparation:
+Randomization: {randomization} | Blinding: {blinding}
+Allocation concealment: {allocation_concealment}
+Dropout: {dropout_rate} | ITT: {intention_to_treat}
+Strength: {primary_methodology_strength}
+Weakness: {primary_methodology_weakness}
+Bias risk: {bias_risk_structured}
+
+STAGE 3 — Evidence Grade:
+Oxford: {oxford_level} ({oxford_roman}) — {oxford_rationale}
+Downgraded: {downgraded} — {downgrade_reason}
+Clinical necessity: {clinical_necessity} — {necessity_rationale}
+
+STAGE 4 — Context:
+Population: {population}
+Setting: {clinical_setting} | Geography: {geographic_context}
+Generalizability: {generalizability} — {generalizability_rationale}
+
+STAGE 5 — Dissonance:
+Conclusion claim: {conclusion_claim}
+Actual result: {actual_primary_result}
+CI width: {ci_width} | Significance: {statistical_significance}
+Clinical significance: {clinical_significance}
+Spin detected: {spin_detected} — {spin_detail}
+Implementation: {implementation_result}
+
+STAGE 6 — Governance Audit:
+Power adequate: {power_adequate}
+Internal consistency: {internal_consistency}
+Limitations reflected: {limitations_reflected_in_conclusion}
+Governance/deployment-readiness profile:
+{governance_profile}
+Patient safety: {patient_safety_concerns}
+Ethics stated: {ethical_considerations}
+Barriers: {implementation_barriers}
+
+Now produce the final synthesis. Respond in raw JSON only. No markdown.
+
+{
+  "key_takeaway": "<the single most important sentence a clinician should know about this article — state the finding plainly, include the actual number, do not use author spin>",
+  "evidence_statement": "<two to three sentences summarising what this article actually shows — what was studied, what was found numerically, what the methodological quality means for interpretation>",
+  "grade_risk_of_bias": "<low, moderate, high, or unclear — confirmed at full-text depth>",
+  "grade_indirectness": "<direct, partially_direct, indirect, or unclear — how directly does this article address the pipeline research question>",
+  "grade_imprecision": "<precise, imprecise, or unclear — confirmed at full-text depth>",
+  "governance_synthesis": "<two sentences maximum: what this article contributes to understanding the governance focus of this pipeline — or confirms absence of governance guidance>",
+  "research_relevance": "<one sentence: how this article contributes to the central research question>",
+  "appraisal_confidence": "<high, moderate, or low>",
+  "appraisal_confidence_rationale": "<one sentence: why this confidence level — full text quality, truncation issues, ambiguous design, etc>"
+}

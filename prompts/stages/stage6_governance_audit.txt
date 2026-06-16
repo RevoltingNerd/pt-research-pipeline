@@ -1,0 +1,76 @@
+You are conducting two simultaneous audits: a statistical honesty audit and a governance/deployment-readiness audit.
+
+AUDIT 1 — STATISTICAL HONESTY: Does this paper remember its own limitations? Check whether the discussion and conclusion sections remain consistent with the methodological limitations identified in the methods.
+
+AUDIT 2 — GOVERNANCE/DEPLOYMENT-READINESS AUDIT: This audit replaces a single "governance" judgment with five specific, checkable dimensions. For EACH dimension below, classify the article into exactly one of three states:
+
+  - "implemented"  — the article describes something the authors actually did, built, tested, specified, or required as part of THIS study (a concrete mechanism, protocol, criterion, or design choice).
+  - "aspirational" — the article mentions, recommends, or calls for this, but does not describe the authors' own implementation of it (e.g. "future work should...", "a framework is needed to...", "we advocate for...", "clinicians should be trained in...").
+  - "not_addressed" — the article does not raise this dimension at all.
+
+The governance focus for this pipeline is: {governance_focus}
+
+Use that focus to interpret each dimension below — it tells you what kind of practitioners, settings, and concerns are relevant to this topic.
+
+The five dimensions:
+
+1. SCOPE_OF_PRACTICE — Does the article specify what the intervention/practitioner does versus what falls outside that role and requires referral, supervision, or a different provider? Look for explicit role delineation: which decisions or tasks belong to the practitioner performing the intervention, which require another provider or level of supervision, and where that boundary sits.
+
+2. OUTPUT_VALIDATION — Does the article describe or recommend a process for confirming the intervention is appropriate or correctly applied before or during use? Look for: diagnostic confirmation or screening criteria prior to intervention, reassessment or second-opinion workflows, objective criteria that trigger a change in approach, comparison against a reference standard.
+
+3. GUARDRAILS_SAFETY — Does the article describe contraindications, precautions, escalation triggers, or conditions under which the intervention should NOT be used or should be modified or stopped? Look for explicit constraints, not just general "safety is important" statements.
+
+4. ACCOUNTABILITY_LIABILITY — Does the article address who is responsible when the intervention causes harm or an adverse event, who signs off on the decision to use it, or how errors/adverse events are tracked or reported?
+
+5. TRAINING_COMPETENCY — Does the article specify what training, certification, or competency a practitioner needs in order to perform this intervention or interpret its results?
+
+For each dimension, also extract the supporting quote or description (if implemented or aspirational) or write "none" (if not_addressed).
+
+You already know:
+Bias risk: {bias_risk_structured}
+Spin detected: {spin_detected}
+Spin detail: {spin_detail}
+Dropout rate: {dropout_rate}
+ITT analysis: {intention_to_treat}
+
+Read the article text carefully. Respond in raw JSON only.
+
+ARTICLE TEXT:
+{full_text}
+
+{
+  "power_analysis_reported": "<yes or no — was an a priori power calculation reported?>",
+  "power_adequate": "<yes, no, unclear, or not_applicable — was the study adequately powered for its primary outcome?>",
+  "limitations_stated": "<yes or no — does the paper have a limitations section or explicit limitation statements?>",
+  "limitations_content": "<the key limitations the authors themselves stated, or 'none stated'>",
+  "limitations_reflected_in_conclusion": "<yes, no, or partial — does the conclusion language respect the limitations stated in the methods/discussion?>",
+  "internal_consistency": "<consistent, inconsistent, or partially_consistent — does the paper remember its own flaws?>",
+
+  "scope_of_practice": {
+    "status": "<implemented, aspirational, or not_addressed>",
+    "detail": "<quote or description, or 'none'>"
+  },
+  "output_validation": {
+    "status": "<implemented, aspirational, or not_addressed>",
+    "detail": "<quote or description, or 'none'>"
+  },
+  "guardrails_safety": {
+    "status": "<implemented, aspirational, or not_addressed>",
+    "detail": "<quote or description, or 'none'>"
+  },
+  "accountability_liability": {
+    "status": "<implemented, aspirational, or not_addressed>",
+    "detail": "<quote or description, or 'none'>"
+  },
+  "training_competency": {
+    "status": "<implemented, aspirational, or not_addressed>",
+    "detail": "<quote or description, or 'none'>"
+  },
+
+  "governance_overall_summary": "<2-3 sentence synthesis: across the five dimensions above, what does this article actually contribute to responsible-practice guidance for {governance_focus}, if anything? Be specific about which dimensions (if any) show real implementation vs aspiration vs silence.>",
+
+  "patient_safety_concerns": "<patient safety issues raised and proposed mitigations. Write 'none stated' if absent>",
+  "ethical_considerations": "<ethical issues explicitly stated by authors — consent, privacy, conflicts of interest, equity. Write 'none stated' if absent. Do NOT infer issues that are not explicitly stated.>",
+  "implementation_barriers": "<barriers to clinical adoption identified by authors. Write 'none stated' if absent>",
+  "future_research_stated": "<what research gaps do authors identify. Write 'none stated' if absent>"
+}

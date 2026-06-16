@@ -1,0 +1,328 @@
+"""
+run_layer3_grade.py — Layer 3 Step 2: GRADE synthesis per cluster
+PT Research Pipeline v2
+
+Reads layer3_clusters.json, groups by cluster, runs GRADE synthesis
+per cluster using the configured layer3 model. Saves to summaries/layer3/
+"""
+
+import json, os, sys, yaml, logging, requests
+from pathlib import Path
+from datetime import datetime
+from collections import Counter
+
+PIPELINE_ROOT = Path(__file__).parent.resolve()
+sys.path.insert(0, str(PIPELINE_ROOT))
+os.chdir(PIPELINE_ROOT)
+
+logging.basicConfig(level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] — %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout),
+              logging.FileHandler(f"logs/layer3_grade_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")])
+log = logging.getLogger(__name__)
+
+def call_ollama(prompt, cfg):
+    # Layer 3 inference tuning — config-driven so different models (e.g.
+    # qwen3.6:35b-a3b) can be used without code changes. Defaults preserve
+    # the original llama-stable:latest 8K behavior.
+    opts = cfg["model"].get("layer3_options", {})
+    payload = {
+        "model":  cfg["model"]["layer3"],
+        "prompt": prompt,
+        "format": "json",
+        "stream": False,
+        "options": {
+            "temperature": opts.get("temperature", 0.1),
+            "num_predict":  opts.get("num_predict", 2000),
+            "num_ctx":      opts.get("num_ctx", 8192),
+        },
+    }
+    # "think" is a TOP-LEVEL key, not inside options. Required for qwen3.6+
+    # to suppress <think>...</think> reasoning blocks that break json.loads().
+    # Only sent if explicitly set in config — older models ignore an absent key.
+    if "think" in opts:
+        payload["think"] = opts["think"]
+
+    timeout = opts.get("timeout", 300)
+    try:
+        resp = requests.post(f"{cfg['model']['base_url']}/api/generate",
+            json=payload, timeout=timeout)
+        resp.raise_for_status()
+        raw = resp.json().get("response", "").strip()
+        return json.loads(raw.lstrip("```json").lstrip("```").rstrip("```").strip())
+    except Exception as e:
+        log.error(f"Ollama call failed: {e}")
+        return {}
+
+def aggregate_grade_domain(values, domain_name):
+    """Aggregate GRADE domain flags across articles in cluster."""
+    counts = Counter(v.lower() for v in values if v)
+    total = sum(counts.values())
+    if not total:
+        return "unclear"
+    # Majority rule with conservative bias
+    if domain_name == "bias":
+        if counts.get("high", 0) / total > 0.3: return "high (majority high or unclear)"
+        if counts.get("moderate", 0) / total > 0.5: return "moderate (majority moderate)"
+        if counts.get("low", 0) / total > 0.5: return "low (majority low)"
+        return f"mixed ({dict(counts)})"
+    else:
+        majority = counts.most_common(1)[0][0]
+        return f"{majority} (n={counts[majority]}/{total})"
+
+def assess_consistency(articles):
+    """Assess consistency of findings across cluster."""
+    impl_results = [a.get("implementation_result","") for a in articles if a.get("implementation_result","")]
+    if not impl_results: return "unclear — implementation results not reported in majority of articles"
+    counts = Counter(impl_results)
+    total = sum(counts.values())
+    if counts.get("success",0) / total > 0.6:
+        return f"consistent — {counts.get('success',0)}/{total} articles report successful implementation"
+    elif counts.get("mixed",0) / total > 0.4:
+        return f"inconsistent — mixed results predominate ({dict(counts)})"
+    else:
+        return f"unclear — heterogeneous findings ({dict(counts)})"
+
+GOVERNANCE_DIMENSIONS = [
+    "scope_of_practice", "output_validation", "guardrails_safety",
+    "accountability_liability", "training_competency",
+]
+
+def aggregate_governance_dimensions(articles):
+    """
+    Aggregate the 5-dimension implemented/aspirational/not_addressed
+    governance taxonomy across all articles in a cluster. Returns a
+    multi-line string (one row per dimension, for the GRADE synthesis prompt)
+    and a structured dict (for storage in the synthesis output / downstream
+    reporting).
+    """
+    n = len(articles)
+    lines = []
+    counts_by_dim = {}
+    for dim in GOVERNANCE_DIMENSIONS:
+        counts = Counter()
+        for a in articles:
+            dims = a.get("governance_dimensions", {}) or {}
+            status = (dims.get(dim, {}) or {}).get("status", "not_addressed")
+            counts[status] += 1
+        lines.append(
+            f"{dim}: implemented={counts.get('implemented',0)} "
+            f"aspirational={counts.get('aspirational',0)} "
+            f"not_addressed={counts.get('not_addressed',0)} (n={n})"
+        )
+        counts_by_dim[dim] = {
+            "implemented":   counts.get("implemented", 0),
+            "aspirational":  counts.get("aspirational", 0),
+            "not_addressed": counts.get("not_addressed", 0),
+        }
+    return "\n".join(lines), counts_by_dim
+
+def build_markdown(cluster, synthesis, article_count, articles=None, model_name="unknown"):
+    cert_colors = {"High":"🟢","Moderate":"🟡","Low":"🟠","Very Low":"🔴"}
+    cert = synthesis.get("grade_certainty","")
+    icon = cert_colors.get(cert, "⚪")
+
+    # Per-dimension governance table rows
+    governance_dim_rows = "(no articles in cluster)"
+    if articles:
+        rows = []
+        for dim in GOVERNANCE_DIMENSIONS:
+            counts = Counter()
+            for a in articles:
+                dims = a.get("governance_dimensions", {}) or {}
+                status = (dims.get(dim, {}) or {}).get("status", "not_addressed")
+                counts[status] += 1
+            label = dim.replace("_", " ").title()
+            rows.append(
+                f"| {label} | {counts.get('implemented',0)} | "
+                f"{counts.get('aspirational',0)} | {counts.get('not_addressed',0)} |"
+            )
+        governance_dim_rows = "\n".join(rows)
+
+    return f"""# Layer 3 GRADE Synthesis — {cluster.replace("_"," ").title()}
+
+**Generated:** {datetime.now().strftime("%Y-%m-%d")} · **Model:** {model_name} · **Articles in cluster:** {article_count}
+
+---
+
+## Clinical question
+
+> {synthesis.get("clinical_question","")}
+
+---
+
+## GRADE certainty: {icon} {cert}
+
+{synthesis.get("grade_certainty_rationale","")}
+
+**Starting certainty:** {synthesis.get("starting_certainty","")}
+
+**Downgrades applied:** {", ".join(synthesis.get("downgrades_applied",[])) or "none"}
+
+**Upgrades applied:** {", ".join(synthesis.get("upgrades_applied",[])) or "none"}
+
+---
+
+## Clinician recommendation
+
+> **{synthesis.get("recommendation_direction","").upper()} — {synthesis.get("recommendation_strength","").upper()} RECOMMENDATION ({cert} certainty)**
+
+{synthesis.get("clinician_recommendation","")}
+
+**Key caveat:** {synthesis.get("key_caveat","")}
+
+---
+
+## Evidence summary
+
+**Oxford distribution:** {synthesis.get("oxford_summary","")}
+
+{synthesis.get("key_findings","")}
+
+**Spin:** {synthesis.get("spin_summary","")}
+
+---
+
+## Governance / deployment-readiness
+
+{synthesis.get("governance_finding","")}
+
+**Governance recommendation:** {synthesis.get("governance_recommendation","")}
+
+| Dimension | Implemented | Aspirational | Not addressed |
+|-----------|:-----------:|:------------:|:-------------:|
+{governance_dim_rows}
+
+---
+
+## Future research priority
+
+{synthesis.get("future_research_priority","")}
+
+---
+
+*Generated by PT Research Pipeline Layer 3 — GRADE synthesis via Ollama. This synthesis represents AI-generated evidence aggregation and should be reviewed by qualified clinicians before informing clinical policy.*
+"""
+
+def main():
+    with open("config.yaml") as f:
+        cfg = yaml.safe_load(f)
+
+    research_question = cfg.get("research_question", "").strip()
+    governance_focus  = cfg.get("topic", {}).get("governance_focus", "governance and responsible practice")
+    short_name        = cfg.get("topic", {}).get("short_name", "this intervention")
+
+    clusters_path = Path("layer3_clusters.json")
+    if not clusters_path.exists():
+        log.error("layer3_clusters.json not found — run run_layer3_cluster.py first")
+        sys.exit(1)
+
+    all_articles = json.loads(clusters_path.read_text())
+    template = Path("prompts/layer3_grade_synthesis.txt").read_text()
+
+    layer3_dir = Path("summaries/layer3")
+    layer3_dir.mkdir(parents=True, exist_ok=True)
+
+    # Group by cluster
+    clusters = {}
+    for article in all_articles:
+        c = article.get("cluster", "general_cross_cutting")
+        if c not in clusters:
+            clusters[c] = []
+        clusters[c].append(article)
+
+    log.info(f"Running GRADE synthesis on {len(clusters)} clusters")
+
+    all_syntheses = []
+
+    for cluster_name, articles in sorted(clusters.items()):
+        log.info(f"\nCluster: {cluster_name} ({len(articles)} articles)")
+
+        out_md   = layer3_dir / f"{cluster_name}_grade.md"
+        out_json = layer3_dir / f"{cluster_name}_grade.json"
+
+        if out_md.exists() and out_json.exists():
+            log.info(f"  Already done — skipping")
+            all_syntheses.append(json.loads(out_json.read_text()))
+            continue
+
+        # Load cluster definition if available, else generate from cluster name
+        cluster_defs_path = Path("layer3_cluster_definitions.json")
+        cluster_definition = ""
+        if cluster_defs_path.exists():
+            defs = json.loads(cluster_defs_path.read_text())
+            cluster_definition = defs.get("definitions", {}).get(cluster_name, "")
+        clinical_question = (
+            f"What does the evidence show regarding {short_name} for "
+            f"{cluster_name.replace('_', ' ')}? {cluster_definition}"
+        ).strip()
+
+        # Build evidence summaries
+        ev_summaries = []
+        for a in articles:
+            ev_summaries.append(
+                f"PMID {a['pmid']} | Oxford {a.get('oxford_roman','?')} | "
+                f"Bias: {a.get('grade_risk_of_bias','?')} | "
+                f"Indirect: {a.get('grade_indirectness','?')} | "
+                f"Spin: {a.get('spin_detected','?')} | "
+                f"Gov: impl={a.get('governance_implemented_count',0)} "
+                f"aspir={a.get('governance_aspirational_count',0)} "
+                f"silent={a.get('governance_not_addressed_count',0)}\n"
+                f"  Takeaway: {a.get('key_takeaway','')[:120]}"
+            )
+
+        # Aggregate GRADE domains
+        biases       = [a.get("grade_risk_of_bias","") for a in articles]
+        indirects    = [a.get("grade_indirectness","") for a in articles]
+        imprecisions = [a.get("grade_imprecision","") for a in articles]
+        spin_count   = sum(1 for a in articles if a.get("spin_detected","").lower() == "yes")
+        gov_dim_summary, gov_dim_counts = aggregate_governance_dimensions(articles)
+        oxford_dist  = dict(Counter(a.get("oxford_roman","?") for a in articles))
+        n = len(articles)
+
+        prompt = template
+        replacements = {
+            "{research_question}":    research_question,
+            "{governance_focus}":     governance_focus,
+            "{cluster_name}":         cluster_name,
+            "{clinical_question}":    clinical_question,
+            "{article_count}":        str(n),
+            "{evidence_summaries}":   "\n\n".join(ev_summaries),
+            "{aggregated_bias}":      aggregate_grade_domain(biases, "bias"),
+            "{aggregated_indirectness}": aggregate_grade_domain(indirects, "indirectness"),
+            "{aggregated_imprecision}":  aggregate_grade_domain(imprecisions, "imprecision"),
+            "{consistency_assessment}":  assess_consistency(articles),
+            "{spin_count}":           str(spin_count),
+            "{spin_pct}":             str(round(100*spin_count/n)),
+            "{governance_dimension_summary}": gov_dim_summary,
+            "{oxford_distribution}":  json.dumps(oxford_dist),
+        }
+        for k, v in replacements.items():
+            prompt = prompt.replace(k, v)
+
+        synthesis = call_ollama(prompt, cfg)
+        if not synthesis:
+            log.error(f"  Synthesis failed for {cluster_name}")
+            continue
+
+        synthesis["cluster"] = cluster_name
+        synthesis["article_count"] = n
+        synthesis["governance_dimension_counts"] = gov_dim_counts
+        synthesis["generated"] = datetime.now().isoformat()
+
+        out_json.write_text(json.dumps(synthesis, indent=2))
+        out_md.write_text(build_markdown(cluster_name, synthesis, n, articles, cfg["model"]["layer3"]))
+        log.info(f"  ✓ GRADE {synthesis.get('grade_certainty','?')} | {synthesis.get('recommendation_direction','?')} | {synthesis.get('recommendation_strength','?')} recommendation")
+
+        all_syntheses.append(synthesis)
+
+    # Save master synthesis
+    Path("summaries/layer3/MASTER_GRADE_SYNTHESIS.json").write_text(
+        json.dumps(all_syntheses, indent=2))
+    log.info(f"\nMaster synthesis saved: {len(all_syntheses)} clusters")
+    log.info("\nFINAL GRADE SUMMARY:")
+    for s in sorted(all_syntheses, key=lambda x: x.get("grade_certainty","")):
+        log.info(f"  {s.get('cluster','')}: {s.get('grade_certainty','?')} | {s.get('recommendation_direction','?')} | {s.get('recommendation_strength','?')} | n={s.get('article_count',0)}")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,40 @@
+You are a clinical research classifier. Read the article text below and extract structured metadata. Respond in raw JSON only. No markdown. No explanation outside the JSON.
+
+RELEVANCE CRITERION FOR THIS PIPELINE:
+{relevance_criterion}
+
+ARTICLE TEXT:
+{full_text}
+
+Respond with exactly this JSON and no other text:
+{
+  "study_design": "<one of: systematic_review_rct, systematic_review_cohort, systematic_review_other, meta_analysis, rct, cohort_prospective, cohort_retrospective, case_control, cross_sectional, case_series, qualitative, narrative_review, scoping_review, editorial_opinion, other>",
+
+  "oxford_level": "<one of: 1a, 1b, 1c, 2a, 2b, 2c, 3a, 3b, 4, 5>",
+  "oxford_rationale": "<one sentence maximum>",
+
+  "relevant_to_primary_question": "<yes or no — apply the RELEVANCE CRITERION above strictly>",
+  "relevance_note": "<one sentence: why this article is or is not relevant to the criterion>",
+
+  "clinical_domain": "<specific clinical area — be precise, e.g. 'chronic neck myofascial pain', 'plantar fasciitis rehabilitation'>",
+
+  "intervention_type": "<the category of intervention studied — e.g. 'dry needling', 'exercise therapy', 'manual therapy', 'combined intervention', 'not_applicable'>",
+
+  "sample_size": "<number as string, or not_reported>",
+
+  "primary_outcome": "<the main outcome measure in one phrase, or not_reported>",
+
+  "grade_risk_of_bias": "<one of: low, moderate, high, unclear — based on study design and any reported limitations>",
+  "grade_risk_rationale": "<one sentence maximum>",
+
+  "grade_directness": "<one of: direct, partially_direct, indirect, unclear — how directly does this study address the pipeline research question>",
+  "grade_directness_rationale": "<one sentence maximum>",
+
+  "grade_precision": "<one of: precise, imprecise, unclear — based on sample size and confidence interval reporting>",
+  "grade_precision_rationale": "<one sentence maximum>",
+
+  "implementation_result": "<one of: success, failure, mixed, not_reported>"
+}
+
+OXFORD LEVEL REFERENCE:
+1a=SR of RCTs, 1b=individual RCT, 1c=all-or-none, 2a=SR of cohorts, 2b=cohort/low-quality RCT, 2c=outcomes research, 3a=SR case-control, 3b=case-control, 4=case series, 5=expert opinion/narrative review
