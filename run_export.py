@@ -133,7 +133,6 @@ def build_articles_l2_sheet(clusters_df: pd.DataFrame) -> pd.DataFrame:
         pmid = str(d.get("pmid", ""))
         rows.append({
             "PMID":                    pmid,
-            "PMID Link":               f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
             "Title":                   d.get("title", ""),
             "Authors":                 d.get("authors", ""),
             "Journal":                 d.get("journal", ""),
@@ -205,7 +204,7 @@ def build_governance_sheet(l2_df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     gov_cols = [
-        "PMID", "PMID Link", "Title", "Journal", "Year", "Cluster",
+        "PMID", "Title", "Journal", "Year", "Cluster",
         "Oxford Roman", "Spin Detected",
     ]
     existing = [c for c in gov_cols if c in l2_df.columns]
@@ -324,6 +323,91 @@ def apply_formatting(writer, df: pd.DataFrame, sheet_name: str,
         ws.set_column(i, i, width)
 
 
+def build_clinical_impact_sheet() -> pd.DataFrame:
+    """Clinical Impact sheet — one row per article per outcome measure comparison.
+    Reads from clinical_impact_ledger.csv if present."""
+    ledger_path = Path("clinical_impact_ledger.csv")
+    if not ledger_path.exists():
+        log.info("clinical_impact_ledger.csv not found — Clinical Impact sheet will be empty")
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(ledger_path)
+        log.info(f"  Clinical Impact ledger: {len(df)} rows")
+        return df
+    except Exception as e:
+        log.warning(f"Failed to load clinical_impact_ledger.csv: {e}")
+        return pd.DataFrame()
+
+
+def build_intervention_hierarchy_sheet() -> pd.DataFrame:
+    """Intervention Hierarchy sheet — aggregated per condition per intervention.
+    Reads from clinical_impact_ledger.csv and aggregates."""
+    ledger_path = Path("clinical_impact_ledger.csv")
+    if not ledger_path.exists():
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(ledger_path)
+        if df.empty or "winning_arm" not in df.columns:
+            return pd.DataFrame()
+
+        CONTROL_PATTERNS = ["control", "sham", "placebo", "standard care",
+                            "usual care", "waitlist", "no treatment", "not_applicable"]
+
+        def is_control(arm):
+            if not arm or str(arm) in ("not_reported", "nan"):
+                return True
+            return any(p in str(arm).lower() for p in CONTROL_PATTERNS)
+
+        records = []
+        for (condition, arm), grp in df.groupby(
+                ["condition_classification", "winning_arm"], dropna=True):
+            if is_control(arm):
+                continue
+            scores  = pd.to_numeric(grp["clinical_leverage_score"], errors="coerce").dropna()
+            mcid_n  = grp["mcid_met"].str.lower().isin(["yes", "borderline"]).sum() \
+                      if "mcid_met" in grp else 0
+            n       = len(grp)
+            eff     = pd.to_numeric(grp["effect_size"], errors="coerce").dropna()
+            med_s   = round(scores.median(), 1) if len(scores) else None
+
+            STARS = {(9,10):"⭐⭐⭐⭐⭐",(7,8):"⭐⭐⭐⭐",(5,6):"⭐⭐⭐",(3,4):"⭐⭐",(0,2):"⭐"}
+            star = next((v for (lo,hi),v in STARS.items()
+                         if med_s is not None and lo <= med_s <= hi), "—")
+
+            protocol = ""
+            if "winning_arm_protocol" in grp.columns:
+                modes = grp["winning_arm_protocol"].dropna()
+                protocol = modes.mode()[0] if len(modes) else ""
+
+            records.append({
+                "Condition":            condition,
+                "Intervention":         arm,
+                "n Comparisons":        n,
+                "Median Leverage Score": med_s,
+                "Star Rating":          star,
+                "Median Delta":         round(pd.to_numeric(
+                                            grp.get("winning_arm_delta", pd.Series()),
+                                            errors="coerce").median(), 2)
+                                        if "winning_arm_delta" in grp else "",
+                "MCID Met (n)":         mcid_n,
+                "MCID Met (%)":         f"{mcid_n/n*100:.0f}%" if n else "0%",
+                "Median Effect Size":   round(eff.median(), 2) if len(eff) else "",
+                "Typical Protocol":     str(protocol)[:200],
+                "Outcome Measures":     ", ".join(grp["outcome_measure"].dropna().unique()[:5])
+                                        if "outcome_measure" in grp else "",
+            })
+
+        if not records:
+            return pd.DataFrame()
+        out = pd.DataFrame(records)
+        out = out.sort_values(["Condition", "Median Leverage Score"],
+                              ascending=[True, False], na_position="last")
+        return out
+    except Exception as e:
+        log.warning(f"Failed to build intervention hierarchy: {e}")
+        return pd.DataFrame()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=str, default=None,
@@ -350,19 +434,16 @@ def main():
 
     log.info("Loading data...")
     l0_df       = load_csv(cfg["paths"]["layer0_ledger"], "Layer 0 ledger")
-    if not l0_df.empty and "pmid" in l0_df.columns:
-        # Insert link column right after pmid for readability
-        pmid_idx = l0_df.columns.get_loc("pmid")
-        l0_df.insert(pmid_idx + 1, "pmid_link",
-                      l0_df["pmid"].map(lambda p: f"https://pubmed.ncbi.nlm.nih.gov/{p}/" if p else ""))
     clusters_df = load_csv("layer3_clusters.csv",         "Layer 3 clusters")
 
     log.info("Building sheets...")
-    summary_df    = build_summary_sheet(cfg)
-    l2_df         = build_articles_l2_sheet(clusters_df)
-    governance_df = build_governance_sheet(l2_df)
-    cluster_df    = build_clusters_sheet()
-    meta_df       = build_meta_sheet(cfg)
+    summary_df        = build_summary_sheet(cfg)
+    l2_df             = build_articles_l2_sheet(clusters_df)
+    governance_df     = build_governance_sheet(l2_df)
+    cluster_df        = build_clusters_sheet()
+    meta_df           = build_meta_sheet(cfg)
+    ci_df             = build_clinical_impact_sheet()
+    hierarchy_df      = build_intervention_hierarchy_sheet()
 
     log.info(f"Writing workbook: {output_path}")
     try:
@@ -374,18 +455,15 @@ def main():
     with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
 
         sheets = [
-            ("Summary",      summary_df),
-            ("Articles_L2",  l2_df),
-            ("Articles_L0",  l0_df),
-            ("Clusters",     cluster_df),
-            ("Governance",   governance_df),
-            ("Meta",         meta_df),
+            ("Summary",                summary_df),
+            ("Articles_L2",            l2_df),
+            ("Articles_L0",            l0_df),
+            ("Clusters",               cluster_df),
+            ("Governance",             governance_df),
+            ("Clinical Impact",        ci_df),
+            ("Intervention Hierarchy", hierarchy_df),
+            ("Meta",                   meta_df),
         ]
-
-        LINK_COLS = {"PMID Link", "pmid_link"}
-        link_fmt = writer.book.add_format({
-            "font_color": "#1155CC", "underline": 1, "align": "left", "valign": "top",
-        })
 
         for sheet_name, df in sheets:
             if df.empty:
@@ -395,19 +473,6 @@ def main():
             else:
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
                 apply_formatting(writer, df, sheet_name)
-
-                # Convert plain-text PubMed URLs into clickable hyperlinks
-                link_cols = [c for c in df.columns if c in LINK_COLS]
-                if link_cols:
-                    ws = writer.sheets[sheet_name]
-                    for col_name in link_cols:
-                        col_idx = df.columns.get_loc(col_name)
-                        for row_idx, url in enumerate(df[col_name], start=1):
-                            if url:
-                                ws.write_url(row_idx, col_idx, url,
-                                              cell_format=link_fmt, string="PubMed")
-                        ws.set_column(col_idx, col_idx, 10)
-
                 log.info(f"  {sheet_name}: {len(df)} rows")
 
         # Workbook-level formatting
@@ -425,7 +490,7 @@ def main():
                 ws.write(0, col_num, col_name, header_fmt)
 
     log.info(f"\nExport complete: {output_path}")
-    log.info(f"Sheets: Summary, Articles_L2, Articles_L0, Clusters, Governance, Meta")
+    log.info(f"Sheets: Summary, Articles_L2, Articles_L0, Clusters, Governance, Clinical Impact, Intervention Hierarchy, Meta")
 
 
 if __name__ == "__main__":
