@@ -1,0 +1,52 @@
+topic: "pelvic floor physical therapy"
+cpg_source: "APTA/ACOG/ICS Clinical Practice Guidelines"
+version: "1.0"
+
+classifications:
+  - id: "PF_stress_urinary_incontinence"
+    label: "Stress Urinary Incontinence"
+    keywords: ["stress urinary incontinence", "SUI", "stress incontinence", "urethral sphincter", "leakage with exertion"]
+
+  - id: "PF_urgency_urinary_incontinence"
+    label: "Urgency Urinary Incontinence / Overactive Bladder"
+    keywords: ["urgency incontinence", "urge incontinence", "overactive bladder", "OAB", "detrusor overactivity"]
+
+  - id: "PF_mixed_incontinence"
+    label: "Mixed Urinary Incontinence"
+    keywords: ["mixed incontinence", "mixed urinary incontinence", "MUI"]
+
+  - id: "PF_fecal_incontinence"
+    label: "Fecal Incontinence / Anorectal Dysfunction"
+    keywords: ["fecal incontinence", "anal incontinence", "bowel incontinence", "anorectal", "defecation disorder", "anismus", "obstructed defecation"]
+
+  - id: "PF_pelvic_organ_prolapse"
+    label: "Pelvic Organ Prolapse"
+    keywords: ["pelvic organ prolapse", "POP", "cystocele", "rectocele", "uterine prolapse", "vault prolapse", "apical prolapse"]
+
+  - id: "PF_pelvic_pain"
+    label: "Chronic Pelvic Pain / Hypertonic Dysfunction"
+    keywords: ["pelvic pain", "chronic pelvic pain", "CPP", "dyspareunia", "vaginismus", "vestibulodynia", "vulvodynia", "levator ani syndrome", "hypertonic", "pelvic floor tension"]
+
+  - id: "PF_postpartum"
+    label: "Postpartum / Obstetric Pelvic Floor Dysfunction"
+    keywords: ["postpartum", "postnatal", "antenatal", "prenatal", "pregnancy", "childbirth", "perineal", "episiotomy", "obstetric", "pelvic girdle", "diastasis recti"]
+
+  - id: "PF_male_dysfunction"
+    label: "Male Pelvic Floor Dysfunction"
+    keywords: ["post-prostatectomy", "prostatectomy", "male incontinence", "male pelvic floor", "erectile dysfunction", "chronic prostatitis", "CPPS"]
+
+  - id: "PF_sexual_dysfunction"
+    label: "Female Sexual Dysfunction / Genitourinary Syndrome"
+    keywords: ["sexual dysfunction", "female sexual dysfunction", "genitourinary syndrome", "GSM", "dyspareunia", "sexual function", "vaginal atrophy", "menopause"]
+
+  - id: "PF_pediatric"
+    label: "Pediatric Pelvic Floor / Bowel Dysfunction"
+    keywords: ["pediatric", "child", "children", "adolescent", "functional constipation", "enuresis", "bedwetting", "daytime incontinence"]
+
+  - id: "PF_athletic_special"
+    label: "Pelvic Floor in Athletes / Special Populations"
+    keywords: ["athlete", "athletic", "sport", "exercise-induced", "runner", "gymnast", "cancer", "oncology", "prehabilitation", "survivorship"]
+
+  - id: "PF_unclassified"
+    label: "Unclassified / Mixed Pelvic Floor Presentation"
+    keywords: []

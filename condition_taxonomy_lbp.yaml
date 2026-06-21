@@ -1,0 +1,103 @@
+# condition_taxonomy.yaml — PT Research Pipeline v2
+# Clinical subclassification taxonomy for topic-specific condition mapping.
+# Based on APTA/JOSPT Clinical Practice Guidelines.
+#
+# Copy and modify this file for each new topic. Rename per topic:
+#   condition_taxonomy_lbp.yaml
+#   condition_taxonomy_shoulder.yaml
+#   condition_taxonomy_vestibular.yaml
+#   etc.
+#
+# Reference this file in config.yaml under:
+#   clinical_impact:
+#     taxonomy_file: "condition_taxonomy_lbp.yaml"
+
+topic: "low back pain"
+cpg_source: "APTA/JOSPT Low Back Pain CPG 2021 (Delitto et al. / Chou et al.)"
+version: "1.0"
+
+classifications:
+
+  - id: "LBP_acute_nonspecific"
+    label: "Acute Nonspecific Low Back Pain"
+    description: "Non-specific mechanical LBP with symptom duration < 6 weeks, no radiculopathy or neurological signs"
+    keywords: ["acute", "nonspecific", "mechanical", "non-specific", "<6 weeks", "short duration"]
+    icd_codes: ["M54.5", "M54.50"]
+    cpg_interventions: ["manual therapy", "exercise", "superficial heat", "patient education"]
+
+  - id: "LBP_subacute_nonspecific"
+    label: "Subacute Nonspecific Low Back Pain"
+    description: "Non-specific mechanical LBP with symptom duration 6-12 weeks"
+    keywords: ["subacute", "sub-acute", "6-12 weeks", "6 to 12 weeks"]
+    icd_codes: ["M54.5", "M54.50"]
+    cpg_interventions: ["manual therapy", "exercise", "cognitive behavioral therapy"]
+
+  - id: "LBP_chronic_nonspecific"
+    label: "Chronic Nonspecific Low Back Pain"
+    description: "Non-specific LBP persisting > 12 weeks without identified structural pathology"
+    keywords: ["chronic", "CLBP", ">12 weeks", "persistent", "long-standing", "chronic non-specific"]
+    icd_codes: ["M54.5", "M54.51"]
+    cpg_interventions: ["exercise", "manual therapy", "CBT", "multidisciplinary pain management", "dry needling"]
+
+  - id: "LBP_radiculopathy"
+    label: "Low Back Pain with Radiculopathy"
+    description: "LBP with radiating leg pain following dermatomal or myotomal distribution, with or without neurological deficit"
+    keywords: ["radiculopathy", "sciatica", "sciatic", "nerve root", "disc herniation", "herniated disc",
+               "radicular", "radiating leg pain", "L4", "L5", "S1", "dermatome"]
+    icd_codes: ["M54.4", "M54.41", "M54.42", "M51.1"]
+    cpg_interventions: ["traction", "manual therapy", "neural mobilization", "exercise", "corticosteroid injection"]
+
+  - id: "LBP_stenosis"
+    label: "Low Back Pain with Lumbar Spinal Stenosis"
+    description: "LBP with neurogenic claudication, bilateral leg symptoms, worsened with extension and walking"
+    keywords: ["stenosis", "spinal stenosis", "lumbar stenosis", "neurogenic claudication",
+               "canal stenosis", "foraminal stenosis"]
+    icd_codes: ["M48.06", "M48.061", "M48.062"]
+    cpg_interventions: ["flexion-based exercise", "manual therapy", "aquatic therapy", "traction"]
+
+  - id: "LBP_movement_coordination"
+    label: "LBP with Movement Coordination Impairment"
+    description: "LBP characterized by loss of movement control, instability patterns, or segmental hypermobility"
+    keywords: ["movement coordination", "motor control", "stabilization", "instability",
+               "segmental instability", "hypermobility", "lumbar instability", "core stabilization"]
+    icd_codes: ["M53.3"]
+    cpg_interventions: ["stabilization exercise", "motor control training", "Pilates", "bracing"]
+
+  - id: "LBP_cognitive_affective"
+    label: "LBP with Cognitive or Affective Overlay"
+    description: "LBP where psychosocial factors (fear avoidance, catastrophizing, depression, central sensitization) are primary drivers"
+    keywords: ["psychosocial", "catastrophizing", "fear avoidance", "kinesiophobia",
+               "central sensitization", "depression", "anxiety", "yellow flags", "pain catastrophizing"]
+    icd_codes: ["F45.41"]
+    cpg_interventions: ["CBT", "pain neuroscience education", "graded activity", "acceptance and commitment therapy"]
+
+  - id: "LBP_pregnancy_postpartum"
+    label: "Pregnancy-Related or Postpartum Low Back Pain"
+    description: "LBP arising during or after pregnancy, including sacroiliac joint dysfunction and pelvic girdle pain"
+    keywords: ["pregnancy", "postpartum", "prenatal", "antenatal", "pelvic girdle pain",
+               "sacroiliac", "posterior pelvic pain", "pubic symphysis"]
+    icd_codes: ["O26.7", "M53.3"]
+    cpg_interventions: ["pelvic belt", "exercise", "manual therapy", "water exercise"]
+
+  - id: "LBP_surgical_postop"
+    label: "Post-Surgical Low Back Pain / Rehabilitation"
+    description: "LBP rehabilitation following lumbar surgery including discectomy, fusion, or decompression"
+    keywords: ["post-surgical", "post-operative", "postoperative", "discectomy", "fusion",
+               "spinal fusion", "decompression", "laminectomy", "PLIF", "TLIF", "ALIF"]
+    icd_codes: ["Z96.641", "Z96.642", "Z96.643"]
+    cpg_interventions: ["progressive exercise", "manual therapy", "neuromuscular re-education"]
+
+  - id: "LBP_occupational"
+    label: "Occupational or Work-Related Low Back Pain"
+    description: "LBP associated with occupational exposure, workplace injury, or return-to-work context"
+    keywords: ["occupational", "work-related", "workplace", "return to work", "workers compensation",
+               "lifting injury", "ergonomic", "occupational rehabilitation"]
+    icd_codes: ["M54.5"]
+    cpg_interventions: ["functional restoration", "work hardening", "ergonomic modification", "graded exposure"]
+
+  - id: "LBP_unclassified"
+    label: "Unclassified / Mixed Low Back Pain"
+    description: "LBP presentations that do not clearly fit a single classification or involve mixed features"
+    keywords: []
+    icd_codes: ["M54.5"]
+    cpg_interventions: []

@@ -1,0 +1,327 @@
+# mcid_reference.yaml — PT Research Pipeline v2
+# Minimum Clinically Important Difference (MCID) reference database
+# for common outcome measures in physical therapy and rehabilitation.
+#
+# Sources are cited per measure. Where multiple MCIDs exist in the literature,
+# the most commonly cited or conservatively defensible value is used.
+# All values represent between-group differences unless noted.
+#
+# To add a new measure: copy an existing block, update all fields.
+# The pipeline reads this file at run time — no code changes required.
+#
+# direction: "decrease" = lower score is better (disability, pain)
+#            "increase" = higher score is better (function, quality of life)
+
+outcome_measures:
+
+  # ── SPINE / LOW BACK PAIN ──────────────────────────────────────────────────
+
+  ODI:
+    full_name: "Oswestry Disability Index"
+    abbreviations: ["ODI", "Oswestry Disability Index", "Oswestry"]
+    scale: "0-100"
+    direction: decrease
+    mcid_absolute: 10
+    mcid_percent: 30
+    mdic_note: "10-point absolute change or 30% relative change from baseline widely cited. Some studies use 12-point threshold."
+    conditions: ["low back pain", "lumbar", "spine", "back"]
+    source: "Ostelo RW et al. Spine 2008; Fritz JM et al. Spine 2001"
+
+  RMDQ:
+    full_name: "Roland-Morris Disability Questionnaire"
+    abbreviations: ["RMDQ", "Roland-Morris", "RDQ", "Roland Morris"]
+    scale: "0-24"
+    direction: decrease
+    mcid_absolute: 5
+    mcid_percent: 30
+    mcid_note: "5-point absolute change on 24-point scale. Some sources cite 2-3 points for milder populations."
+    conditions: ["low back pain", "lumbar", "spine", "back"]
+    source: "Ostelo RW et al. Spine 2008"
+
+  STarT:
+    full_name: "STarT Back Screening Tool"
+    abbreviations: ["STarT", "STarT Back", "SBT"]
+    scale: "0-9"
+    direction: decrease
+    mcid_absolute: 2
+    mcid_percent: null
+    mcid_note: "Primarily a stratification tool; MCID less established for outcome tracking."
+    conditions: ["low back pain", "lumbar", "spine"]
+    source: "Hill JC et al. Lancet 2011"
+
+  # ── PAIN SCALES (GENERAL) ─────────────────────────────────────────────────
+
+  NPRS:
+    full_name: "Numeric Pain Rating Scale"
+    abbreviations: ["NPRS", "NRS", "Numeric Pain Rating", "Numeric Rating Scale"]
+    scale: "0-10"
+    direction: decrease
+    mcid_absolute: 2
+    mcid_percent: 30
+    mcid_note: "2-point absolute or 30% relative change. Some sources cite 1.5 points for chronic pain populations."
+    conditions: ["musculoskeletal pain", "general", "spine", "shoulder", "knee", "hip", "ankle", "neck", "pelvic"]
+    source: "Farrar JT et al. Pain 2001; Salaffi F et al. Eur J Pain 2004"
+
+  VAS:
+    full_name: "Visual Analog Scale"
+    abbreviations: ["VAS", "Visual Analogue Scale", "Visual Analog Scale"]
+    scale: "0-100mm"
+    direction: decrease
+    mcid_absolute: 15
+    mcid_percent: 30
+    mcid_note: "15mm absolute change on 100mm scale. Equivalent to ~1.5 points on 0-10 NRS."
+    conditions: ["musculoskeletal pain", "general"]
+    source: "Tubach F et al. Ann Rheum Dis 2005"
+
+  # ── SHOULDER ─────────────────────────────────────────────────────────────
+
+  DASH:
+    full_name: "Disabilities of the Arm, Shoulder and Hand"
+    abbreviations: ["DASH", "QuickDASH", "Quick DASH"]
+    scale: "0-100"
+    direction: decrease
+    mcid_absolute: 10
+    mcid_percent: null
+    mcid_note: "10-point change on 0-100 scale. QuickDASH uses same threshold."
+    conditions: ["shoulder", "arm", "hand", "wrist", "elbow", "upper extremity"]
+    source: "Gummesson C et al. J Hand Surg 2006"
+
+  WORC:
+    full_name: "Western Ontario Rotator Cuff Index"
+    abbreviations: ["WORC"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 12
+    mcid_percent: null
+    mcid_note: "12-point change (higher = better function)."
+    conditions: ["shoulder", "rotator cuff"]
+    source: "Kirkley A et al. Arthroscopy 2003"
+
+  ASES:
+    full_name: "American Shoulder and Elbow Surgeons Score"
+    abbreviations: ["ASES", "ASES score"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 12
+    mcid_percent: null
+    mcid_note: "Higher scores = better function."
+    conditions: ["shoulder", "elbow"]
+    source: "Michener LA et al. J Shoulder Elbow Surg 2002"
+
+  # ── KNEE ─────────────────────────────────────────────────────────────────
+
+  KOOS:
+    full_name: "Knee Injury and Osteoarthritis Outcome Score"
+    abbreviations: ["KOOS", "KOOS-PS", "KOOS Pain", "KOOS Function"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 10
+    mcid_percent: null
+    mcid_note: "10-point change per subscale. Higher = better."
+    conditions: ["knee", "knee osteoarthritis", "ACL", "meniscus"]
+    source: "Collins NJ et al. Osteoarthritis Cartilage 2016"
+
+  WOMAC:
+    full_name: "Western Ontario and McMaster Universities Osteoarthritis Index"
+    abbreviations: ["WOMAC", "WOMAC pain", "WOMAC function"]
+    scale: "0-100 (normalized)"
+    direction: decrease
+    mcid_absolute: 12
+    mcid_percent: 15
+    mcid_note: "MCID varies by subscale and population. 12 points on normalized 0-100 scale commonly cited."
+    conditions: ["knee", "hip", "osteoarthritis"]
+    source: "Ehrich EW et al. J Rheumatol 2000"
+
+  LKSS:
+    full_name: "Lysholm Knee Scoring Scale"
+    abbreviations: ["Lysholm", "LKSS", "Lysholm score"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 10
+    mcid_percent: null
+    mcid_note: "Higher = better function."
+    conditions: ["knee", "ACL", "ligament"]
+    source: "Briggs KK et al. Am J Sports Med 2009"
+
+  # ── HIP ─────────────────────────────────────────────────────────────────
+
+  HOOS:
+    full_name: "Hip disability and Osteoarthritis Outcome Score"
+    abbreviations: ["HOOS", "HOOS-PS"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 10
+    mcid_percent: null
+    mcid_note: "Higher = better function."
+    conditions: ["hip", "hip osteoarthritis"]
+    source: "Nilsdotter AK et al. BMC Musculoskelet Disord 2003"
+
+  NAHS:
+    full_name: "Non-Arthritic Hip Score"
+    abbreviations: ["NAHS"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 10
+    mcid_percent: null
+    conditions: ["hip", "femoroacetabular impingement", "labral tear"]
+    source: "Christensen CP et al. Clin Orthop Relat Res 2003"
+
+  # ── NECK / CERVICAL ─────────────────────────────────────────────────────
+
+  NDI:
+    full_name: "Neck Disability Index"
+    abbreviations: ["NDI", "Neck Disability Index"]
+    scale: "0-100"
+    direction: decrease
+    mcid_absolute: 10
+    mcid_percent: null
+    mcid_note: "7.5-point change also cited in some populations."
+    conditions: ["neck", "cervical", "cervicogenic", "whiplash"]
+    source: "Young IA et al. J Orthop Sports Phys Ther 2009"
+
+  # ── ANKLE / FOOT ────────────────────────────────────────────────────────
+
+  FAAM:
+    full_name: "Foot and Ankle Ability Measure"
+    abbreviations: ["FAAM", "FAAM ADL", "FAAM Sport"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 8
+    mcid_percent: null
+    mcid_note: "8 points for ADL subscale. Sport subscale MCID ~9 points."
+    conditions: ["ankle", "foot", "Achilles", "plantar fascia"]
+    source: "Carcia CR et al. J Orthop Sports Phys Ther 2008"
+
+  CAIT:
+    full_name: "Cumberland Ankle Instability Tool"
+    abbreviations: ["CAIT"]
+    scale: "0-30"
+    direction: increase
+    mcid_absolute: 3
+    mcid_percent: null
+    conditions: ["ankle", "ankle instability", "lateral ankle sprain"]
+    source: "Donahue M et al. J Athl Train 2011"
+
+  # ── PELVIC FLOOR ─────────────────────────────────────────────────────────
+
+  ICIQ_UI:
+    full_name: "International Consultation on Incontinence Questionnaire — Urinary Incontinence"
+    abbreviations: ["ICIQ", "ICIQ-UI", "ICIQ-SF", "ICIQ UI Short Form"]
+    scale: "0-21"
+    direction: decrease
+    mcid_absolute: 2
+    mcid_percent: null
+    mcid_note: "2-point change on 21-point scale."
+    conditions: ["urinary incontinence", "pelvic floor", "overactive bladder"]
+    source: "Klovning A et al. Neurourol Urodyn 2009"
+
+  PFDI:
+    full_name: "Pelvic Floor Distress Inventory"
+    abbreviations: ["PFDI", "PFDI-20", "PFDI-SF"]
+    scale: "0-300"
+    direction: decrease
+    mcid_absolute: 45
+    mcid_percent: null
+    conditions: ["pelvic floor", "pelvic organ prolapse", "urinary incontinence"]
+    source: "Barber MD et al. Am J Obstet Gynecol 2001"
+
+  PFIQ:
+    full_name: "Pelvic Floor Impact Questionnaire"
+    abbreviations: ["PFIQ", "PFIQ-7"]
+    scale: "0-300"
+    direction: decrease
+    mcid_absolute: 36
+    mcid_percent: null
+    conditions: ["pelvic floor", "pelvic organ prolapse"]
+    source: "Barber MD et al. Am J Obstet Gynecol 2005"
+
+  # ── QUALITY OF LIFE / GENERAL HEALTH ────────────────────────────────────
+
+  SF36:
+    full_name: "Short Form Health Survey 36"
+    abbreviations: ["SF-36", "SF36", "SF-36 PCS", "SF-36 MCS"]
+    scale: "0-100 per domain"
+    direction: increase
+    mcid_absolute: 5
+    mcid_percent: null
+    mcid_note: "5-point change per domain. Physical and Mental Component Summary scores most commonly reported."
+    conditions: ["general", "musculoskeletal", "chronic condition"]
+    source: "Ware JE et al. Med Care 1992; Norman GR et al. J Clin Epidemiol 2003"
+
+  EQ5D:
+    full_name: "EuroQol Five Dimension"
+    abbreviations: ["EQ-5D", "EQ5D", "EQ-5D-3L", "EQ-5D-5L"]
+    scale: "0-1 (utility) or 0-100 VAS"
+    direction: increase
+    mcid_absolute: 0.07
+    mcid_percent: null
+    mcid_note: "0.07 utility change is commonly cited. VAS component MCID ~10 points."
+    conditions: ["general", "quality of life"]
+    source: "Pickard AS et al. Value Health 2007"
+
+  PSFS:
+    full_name: "Patient-Specific Functional Scale"
+    abbreviations: ["PSFS", "Patient Specific Functional Scale"]
+    scale: "0-10"
+    direction: increase
+    mcid_absolute: 2
+    mcid_percent: null
+    mcid_note: "2-point change on 0-10 scale per activity. Higher = better function."
+    conditions: ["general", "musculoskeletal", "orthopedic"]
+    source: "Stratford P et al. Physiother Can 1995"
+
+  GROC:
+    full_name: "Global Rating of Change"
+    abbreviations: ["GROC", "GRC", "Global Rating of Change", "Global Change Scale"]
+    scale: "-7 to +7 (or 0-15)"
+    direction: increase
+    mcid_absolute: 3
+    mcid_percent: null
+    mcid_note: "Often used as an anchor measure rather than a primary outcome."
+    conditions: ["general", "musculoskeletal"]
+    source: "Jaeschke R et al. J Clin Epidemiol 1989"
+
+  # ── VESTIBULAR / BALANCE ─────────────────────────────────────────────────
+
+  DHI:
+    full_name: "Dizziness Handicap Inventory"
+    abbreviations: ["DHI", "Dizziness Handicap Inventory"]
+    scale: "0-100"
+    direction: decrease
+    mcid_absolute: 18
+    mcid_percent: null
+    mcid_note: "18-point absolute change commonly cited."
+    conditions: ["vestibular", "dizziness", "BPPV", "vertigo", "balance"]
+    source: "Jacobson GP & Newman CW 1990; Tamber AL et al. Phys Ther 2009"
+
+  ABC:
+    full_name: "Activities-specific Balance Confidence Scale"
+    abbreviations: ["ABC", "ABC Scale", "Activities-specific Balance Confidence"]
+    scale: "0-100"
+    direction: increase
+    mcid_absolute: 11
+    mcid_percent: null
+    conditions: ["vestibular", "balance", "fall risk", "elderly"]
+    source: "Powell LE & Myers AM 1995"
+
+  # ── UPPER EXTREMITY / HAND ───────────────────────────────────────────────
+
+  PRWE:
+    full_name: "Patient-Rated Wrist Evaluation"
+    abbreviations: ["PRWE", "Patient Rated Wrist Evaluation"]
+    scale: "0-100"
+    direction: decrease
+    mcid_absolute: 11
+    mcid_percent: null
+    conditions: ["wrist", "hand", "distal radius", "carpal tunnel"]
+    source: "MacDermid JC et al. J Hand Ther 2000"
+
+  BCTQ:
+    full_name: "Boston Carpal Tunnel Questionnaire"
+    abbreviations: ["BCTQ", "Boston CTQ", "CTS symptom scale"]
+    scale: "1-5 per subscale"
+    direction: decrease
+    mcid_absolute: 0.74
+    mcid_percent: null
+    conditions: ["carpal tunnel syndrome", "wrist", "hand"]
+    source: "Bland JD 2001"

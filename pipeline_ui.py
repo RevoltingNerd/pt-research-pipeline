@@ -176,36 +176,14 @@ def api_config():
             topic["intervention_noun"]   = data.get("intervention_noun", "")
             topic["governance_focus"]    = data.get("governance_focus", "")
             cfg["topic"] = topic
-
-            # Preserve esearch_params (PubMed E-utilities fallback term/retmax)
-            # per feed, matched by name AND url — the UI has no field for this,
-            # but dropping it on save would silently break ingest.py's fallback
-            # if an RSS URL later expires (see equine run bugfix).
-            #
-            # CRITICAL: only carry over if the URL is UNCHANGED. feed_a/b/c
-            # names are reused across topics, so if the URL changed (new
-            # topic, new search) the old esearch_params.term belongs to the
-            # PREVIOUS topic's search — reusing it would cause the
-            # E-utilities fallback to silently re-fetch the wrong corpus if
-            # the new RSS URL is empty/unavailable (as brand-new PubMed RSS
-            # searches sometimes are for a short window after creation).
-            old_feeds_by_name = {
-                f.get("name"): f for f in cfg.get("feeds", []) if isinstance(f, dict)
-            }
             feeds = []
             for i, f in enumerate(data.get("feeds", [])):
                 if f.get("url","").strip():
-                    name = f.get("name", f"feed_{chr(97+i)}")
-                    url  = f["url"].strip()
-                    entry = {
-                        "url":         url,
-                        "name":        name,
+                    feeds.append({
+                        "url":         f["url"].strip(),
+                        "name":        f.get("name", f"feed_{chr(97+i)}"),
                         "description": f.get("description",""),
-                    }
-                    old = old_feeds_by_name.get(name)
-                    if old and "esearch_params" in old and old.get("url") == url:
-                        entry["esearch_params"] = old["esearch_params"]
-                    feeds.append(entry)
+                    })
             cfg["feeds"] = feeds
             cfg_path.write_text(yaml.dump(cfg, allow_unicode=True, default_flow_style=False))
             return jsonify({"ok": True})
@@ -219,10 +197,30 @@ def api_config():
             return jsonify({"error": str(e)}), 400
 
 
+@app.route("/api/ollama/chat", methods=["POST"])
+def api_ollama_chat():
+    """Proxy Ollama /api/chat server-side — buffered, non-streaming."""
+    import urllib.request
+    try:
+        data = request.get_json(force=True)
+        data["stream"] = False  # force non-streaming regardless of client request
+        req = urllib.request.Request(
+            "http://localhost:11434/api/chat",
+            data=json.dumps(data).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            body = resp.read().decode("utf-8")
+        return body, 200, {"Content-Type": "application/json"}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/run/<script>", methods=["POST"])
 def api_run(script):
     global _process, _log_lines, _start_times, _phase_done
-    allowed = {p["script"] for p in PHASES} | {"run_archive.py"}
+    allowed = {p["script"] for p in PHASES}
     if script not in allowed:
         return jsonify({"ok": False, "error": "unknown script"}), 400
     if _process and _process.poll() is None:
@@ -358,6 +356,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <title>PT Research Pipeline</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{%- raw -%}
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -437,8 +436,43 @@ input[type="text"] { height: 38px; }
 .btn-save { background: var(--navy3); border: 1px solid var(--grey3); color: var(--grey1); font-size: 12px; padding: 0 12px; }
 .btn-save:hover { border-color: var(--teal); color: var(--teal); }
 
-/* ── Right panel ── */
-.right { display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+/* ── AI Config Assistant ── */
+.ai-toggle { width: 100%; background: none; border: none; border-bottom: 1px solid var(--grey3); padding: 10px 20px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--teal); font-family: var(--font); font-size: 12px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; transition: background .15s; }
+.ai-toggle:hover { background: rgba(42,157,143,.07); }
+.ai-toggle .ai-icon { width: 20px; height: 20px; background: rgba(42,157,143,.15); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.ai-toggle .chevron { margin-left: auto; font-size: 10px; transition: transform .2s; }
+.ai-toggle.open .chevron { transform: rotate(180deg); }
+
+.ai-panel { background: var(--navy); border-bottom: 1px solid var(--grey3); display: none; flex-direction: column; height: 340px; }
+.ai-panel.open { display: flex; }
+.ai-messages { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ai-messages::-webkit-scrollbar { width: 3px; }
+.ai-messages::-webkit-scrollbar-thumb { background: var(--grey3); border-radius: 2px; }
+
+.ai-msg { display: flex; gap: 8px; align-items: flex-start; }
+.ai-msg.user { flex-direction: row-reverse; }
+.ai-avatar { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.ai-msg.assistant .ai-avatar { background: rgba(42,157,143,.2); color: var(--teal); }
+.ai-msg.user .ai-avatar { background: rgba(74,144,164,.2); color: var(--steel); }
+.ai-bubble { max-width: 88%; padding: 8px 11px; border-radius: 10px; font-size: 12px; line-height: 1.55; }
+.ai-msg.assistant .ai-bubble { background: var(--navy2); color: var(--white); border: 1px solid var(--grey3); border-top-left-radius: 3px; }
+.ai-msg.user .ai-bubble { background: rgba(42,157,143,.12); color: var(--white); border: 1px solid rgba(42,157,143,.25); border-top-right-radius: 3px; }
+.ai-bubble pre { font-family: var(--mono); font-size: 11px; white-space: pre-wrap; word-break: break-word; margin-top: 6px; background: rgba(0,0,0,.3); padding: 8px; border-radius: 4px; }
+
+.ai-apply-btn { margin-top: 8px; padding: 5px 10px; background: var(--teal); color: var(--navy); border: none; border-radius: 5px; font-family: var(--font); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.ai-apply-btn:hover { background: var(--teal2); color: var(--white); }
+
+.ai-input-row { padding: 8px 12px; border-top: 1px solid var(--grey3); display: flex; gap: 6px; align-items: flex-end; background: var(--navy2); }
+.ai-input-row textarea { min-height: 36px; max-height: 90px; height: 36px; resize: none; font-size: 12px; padding: 8px 10px; flex: 1; }
+.ai-send { width: 34px; height: 34px; background: var(--teal); border: none; border-radius: 6px; color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; transition: background .15s; }
+.ai-send:hover { background: var(--teal2); color: var(--white); }
+.ai-send:disabled { background: var(--grey3); color: var(--grey2); cursor: not-allowed; }
+.ai-thinking { display: flex; gap: 4px; padding: 4px 2px; }
+.ai-thinking span { width: 5px; height: 5px; border-radius: 50%; background: var(--grey1); animation: bounce 1.2s ease-in-out infinite; }
+.ai-thinking span:nth-child(2) { animation-delay: .2s; }
+.ai-thinking span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce { 0%,100%{transform:translateY(0);opacity:.4} 50%{transform:translateY(-4px);opacity:1} }
+
 
 /* Phase tracker */
 .phases { padding: 16px 24px; background: var(--navy2); border-bottom: 1px solid var(--grey3); display: flex; gap: 0; align-items: center; }
@@ -492,8 +526,9 @@ input[type="text"] { height: 38px; }
 .toast.ok  { background: rgba(42,157,143,.9); color: #fff; }
 .toast.err { background: rgba(224,84,84,.9);  color: #fff; }
 </style>
+{%- endraw -%}
 </head>
-<body>
+<body data-phases='{{ phases | tojson }}'>
 <div class="app">
 
 <!-- Header -->
@@ -518,6 +553,22 @@ input[type="text"] { height: 38px; }
   <div class="panel-header">
     <span class="panel-title">Pipeline Configuration</span>
     <button class="btn btn-save" onclick="saveConfig()">Save config</button>
+  </div>
+
+  <!-- AI Config Assistant -->
+  <button class="ai-toggle" id="aiToggle" onclick="toggleAI()">
+    <span class="ai-icon">✦</span>
+    Configure with AI
+    <span class="chevron">▼</span>
+  </button>
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-messages" id="aiMessages"></div>
+    <div class="ai-input-row">
+      <textarea id="aiInput" placeholder="Describe your clinical topic…" rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
+        oninput="this.style.height='36px';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
+      <button class="ai-send" id="aiSend" onclick="sendAI()" title="Send">➤</button>
+    </div>
   </div>
 
   <div class="left-scroll">
@@ -573,12 +624,10 @@ input[type="text"] { height: 38px; }
     <button id="btnRun" class="btn btn-primary" onclick="runAll()">▶  Run full pipeline</button>
     <button id="btnStop" class="btn btn-danger" onclick="stopPipeline()" style="display:none">■  Stop</button>
   </div>
-  <div class="btn-row">
-    <button id="btnArchive" class="btn" onclick="archiveAndReset()" title="Move this run's outputs to archive/{topic}_{date}/ and reset cache/summaries/logs to empty">📦  Archive &amp; Reset</button>
+  <div class="btn-row" style="padding-top:0">
+    <button id="btnArchive" class="btn" onclick="archiveAndReset()" style="flex:1;justify-content:center;background:var(--navy3);border:1px solid var(--grey3);color:var(--grey1);font-size:12px" title="Move outputs to archive/ and reset working folders">📦  Archive &amp; Reset</button>
   </div>
-  <div style="font-size:12px;color:var(--grey1);margin-top:4px;">
-    Run this once you've reviewed the Excel workbook and report below. It moves all outputs for this run into <code>archive/</code> and clears the working folders so the next topic starts clean. The stats above will reset to zero afterward — that's expected.
-  </div>
+  <div style="font-size:11px;color:var(--grey2);padding:4px 20px 12px;line-height:1.4">Run after reviewing outputs. Moves everything to archive/ and clears working folders for next topic.</div>
 </div><!-- /left -->
 
 <!-- Right: Status + Logs -->
@@ -618,12 +667,12 @@ input[type="text"] { height: 38px; }
 
 <div class="toast" id="toast"></div>
 
+{%- raw -%}
 <script>
 let logOffset = 0;
 let autoScroll = true;
-let phases = {{ phases | tojson }};
+let phases = JSON.parse(document.body.dataset.phases || '[]');
 let lastLogCount = 0;
-let lastRunning = false;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function loadConfig() {
@@ -676,6 +725,211 @@ async function runAll() {
   if (!d.ok) showToast(d.error, 'err');
 }
 
+// ── AI Config Assistant ──────────────────────────────────────────────
+const AI_SYSTEM = `You are helping a physical therapist configure an automated evidence synthesis pipeline. The pipeline searches PubMed, screens articles with AI, performs 7-stage clinical appraisal, and produces GRADE-rated evidence syntheses.
+
+Your job is to ask the user 7 questions ONE AT A TIME to understand their topic, then generate the exact configuration fields they need.
+
+Ask these questions in order, one at a time. Wait for the answer before asking the next one:
+
+1. CLINICAL TOPIC — What clinical topic, intervention, or clinical question do you want to review? Describe it in plain language — the intervention, what condition it treats, and what aspect interests you most (effectiveness, safety, technique, governance, dosage, comparison with other treatments, etc.)
+
+2. AUDIENCE AND PURPOSE — Who will read this synthesis and what decision are they trying to make? (e.g. a SIG of practicing PTs deciding whether to adopt a technique, a manager designing a training program, a clinician writing a practice guideline)
+
+3. SCOPE — Should this be a broad scoping review (map the entire literature) or a focused review (answer a specific clinical question)? If focused, what is the specific question using PICO format?
+
+4. POPULATION — Who is the patient population? Be specific — age range, condition severity, chronicity, clinical setting, any important subgroups.
+
+5. GOVERNANCE ANGLE — What governance, safety, or scope-of-practice questions are relevant? (e.g. training requirements, adverse event protocols, contraindications, scope of practice for a specific license type)
+
+6. DATE RANGE AND EVIDENCE TYPE — How far back should the search go? Are you most interested in systematic reviews, RCTs, all study types, or a specific design?
+
+7. COMPARISON — For a focused question: what is the intervention being compared against? (Sham, active control, standard care, no treatment, another technique, or not applicable)
+
+After all 7 answers, output EXACTLY this block with no extra text before or after the markers:
+
+===CONFIG_START===
+FIELD1_RESEARCH_QUESTION: [single well-formed clinical research question]
+FIELD2_SHORT_NAME: [2-4 words, lowercase]
+FIELD3_RELEVANCE_CRITERION: [2-4 sentences starting with "The article concerns..."]
+FIELD4_INTERVENTION_NOUN: [short phrase]
+FIELD5_GOVERNANCE_FOCUS: [2-4 sentences naming specific regulatory bodies, license types, training standards]
+FIELD6_FEED_A_DESC: [one sentence — systematic reviews and meta-analyses]
+FIELD7_FEED_B_DESC: [one sentence — RCTs and clinical trials]
+FIELD8_FEED_C_DESC: [one sentence — governance, safety, implementation]
+FEED_A_SEARCH: [PubMed search string using MeSH and Title/Abstract tags, end with AND free full text[Filter]]
+FEED_B_SEARCH: [PubMed search string, end with AND free full text[Filter]]
+FEED_C_SEARCH: [PubMed search string, no free full text filter]
+===CONFIG_END===
+
+Be specific, clinical, and precise. Each field must be immediately usable without editing.`;
+
+let aiHistory = [];
+let aiStreaming = false;
+
+function toggleAI() {
+  const panel = document.getElementById('aiPanel');
+  const toggle = document.getElementById('aiToggle');
+  const isOpen = panel.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+  if (isOpen && aiHistory.length === 0) {
+    appendAIMessage('assistant', "Hi! I'll help you configure the pipeline. Tell me about the clinical topic you want to review — what's the intervention, what condition does it treat, and what aspect are you most interested in?");
+    aiHistory.push({ role: 'assistant', content: "Hi! I'll help you configure the pipeline. Tell me about the clinical topic you want to review — what's the intervention, what condition does it treat, and what aspect are you most interested in?" });
+  }
+}
+
+function appendAIMessage(role, content) {
+  const msgs = document.getElementById('aiMessages');
+  const id = 'ai-msg-' + Date.now();
+  const avatar = role === 'assistant' ? '✦' : 'You';
+  const parsed = parseAIContent(content);
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + role;
+  div.id = id;
+  div.innerHTML = '<div class="ai-avatar">' + avatar + '</div><div class="ai-bubble">' + parsed + '</div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function updateAIMessage(id, content) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const bubble = el.querySelector('.ai-bubble');
+  if (bubble) bubble.innerHTML = parseAIContent(content);
+  document.getElementById('aiMessages').scrollTop = 99999;
+}
+
+function parseAIContent(text) {
+  if (text.includes('===CONFIG_START===')) {
+    const before = text.split('===CONFIG_START===')[0].trim();
+    const block  = (text.split('===CONFIG_START===')[1] || '').split('===CONFIG_END===')[0].trim();
+    const fields = parseConfigBlock(block);
+    let html = before ? '<p>' + escHtml(before) + '</p>' : '';
+    html += '<p style="margin-top:6px;color:var(--teal);font-weight:600;font-size:11px">✓ Configuration ready</p>';
+    if (fields) {
+      html += '<pre>' + escHtml(block) + '</pre>';
+      html += '<button class="ai-apply-btn" onclick=\'applyAIConfig(' + JSON.stringify(JSON.stringify(fields)) + ')\'>⬆ Apply to config fields</button>';
+    }
+    return html;
+  }
+  return escHtml(text).replace(/\n/g, '<br>');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function parseConfigBlock(block) {
+  const lines = block.split('\n');
+  const fields = {};
+  for (const line of lines) {
+    const m = line.match(/^(FIELD\d+_\w+|FEED_[ABC]_(?:SEARCH|DESC)):\s*(.+)/);
+    if (m) fields[m[1]] = m[2].trim();
+  }
+  return Object.keys(fields).length > 0 ? fields : null;
+}
+
+function applyAIConfig(fieldsJson) {
+  const fields = JSON.parse(fieldsJson);
+  const set = function(id, key) { const el = document.getElementById(id); if (el && fields[key]) el.value = fields[key]; };
+  set('rq',                'FIELD1_RESEARCH_QUESTION');
+  set('shortName',         'FIELD2_SHORT_NAME');
+  set('relevanceCriterion','FIELD3_RELEVANCE_CRITERION');
+  set('interventionNoun',  'FIELD4_INTERVENTION_NOUN');
+  set('governanceFocus',   'FIELD5_GOVERNANCE_FOCUS');
+  set('feedA-desc',        'FIELD6_FEED_A_DESC');
+  set('feedB-desc',        'FIELD7_FEED_B_DESC');
+  set('feedC-desc',        'FIELD8_FEED_C_DESC');
+
+  if (fields.FEED_A_SEARCH || fields.FEED_B_SEARCH || fields.FEED_C_SEARCH) {
+    const msgs = document.getElementById('aiMessages');
+    const div = document.createElement('div');
+    div.className = 'ai-msg assistant';
+    div.innerHTML = '<div class="ai-avatar">✦</div><div class="ai-bubble">' +
+      '<p style="color:var(--teal);font-weight:600;margin-bottom:6px">✓ Fields applied! Paste these into PubMed to create your RSS feeds:</p>' +
+      '<p style="font-size:11px;color:var(--grey1);margin-bottom:4px;font-weight:600">FEED A SEARCH</p><pre>' + escHtml(fields.FEED_A_SEARCH||'') + '</pre>' +
+      '<p style="font-size:11px;color:var(--grey1);margin:6px 0 4px;font-weight:600">FEED B SEARCH</p><pre>' + escHtml(fields.FEED_B_SEARCH||'') + '</pre>' +
+      '<p style="font-size:11px;color:var(--grey1);margin:6px 0 4px;font-weight:600">FEED C SEARCH</p><pre>' + escHtml(fields.FEED_C_SEARCH||'') + '</pre>' +
+      '<p style="font-size:11px;color:var(--grey1);margin-top:8px">Paste each into PubMed → Create RSS (100 items) → paste the RSS URL into the Feed URL fields above.</p>' +
+      '</div>';
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  showToast('Config fields populated from AI', 'ok');
+}
+
+async function sendAI() {
+  if (aiStreaming) return;
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  input.style.height = '36px';
+  aiHistory.push({ role: 'user', content: msg });
+  appendAIMessage('user', msg);
+
+  const msgs = document.getElementById('aiMessages');
+  const thinkId = 'think-' + Date.now();
+  const thinkDiv = document.createElement('div');
+  thinkDiv.className = 'ai-msg assistant';
+  thinkDiv.id = thinkId;
+  thinkDiv.innerHTML = '<div class="ai-avatar">✦</div><div class="ai-bubble"><div class="ai-thinking"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(thinkDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  document.getElementById('aiSend').disabled = true;
+  aiStreaming = true;
+
+  let full = '';
+  const msgId = 'stream-' + Date.now();
+
+  try {
+    const cfg = await (await fetch('/api/config')).json();
+    const model = (cfg.model && cfg.model.layer0) || 'qwen3.6:35b-a3b';
+
+    const res = await fetch('/api/ollama/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        stream: false,
+        think: false,
+        options: { temperature: 0.4, num_predict: 2000, num_ctx: 8192 },
+        messages: [{ role: 'system', content: AI_SYSTEM }].concat(aiHistory.slice(0, -1))
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('Ollama returned ' + res.status + ': ' + errText.slice(0, 200));
+    }
+
+    const thinkEl = document.getElementById(thinkId);
+    if (thinkEl) thinkEl.remove();
+
+    const data = await res.json();
+    full = (data.message && data.message.content) ? data.message.content : '';
+    if (!full) throw new Error('Empty response from model');
+    appendAIMessage('assistant', full);
+  } catch (e) {
+    const thinkEl = document.getElementById(thinkId);
+    if (thinkEl) thinkEl.remove();
+    appendAIMessage('assistant', 'Error: ' + (e.message || 'Could not reach Ollama — make sure it is running on localhost:11434.'));
+    full = 'error';
+  }
+
+
+  if (full && full !== 'error') {
+    aiHistory.push({ role: 'assistant', content: full });
+  }
+  aiStreaming = false;
+  document.getElementById('aiSend').disabled = false;
+}
+
+
 async function stopPipeline() {
   const r = await fetch('/api/stop', { method:'POST' });
   const d = await r.json();
@@ -687,9 +941,7 @@ async function archiveAndReset() {
     showToast('Pipeline is still running — wait for it to finish first', 'err');
     return;
   }
-  if (!confirm('This will move this run\'s outputs (ledgers, cache, summaries, logs, ' +
-               'Excel workbook, report) into archive/{topic}_{date}/ and reset the ' +
-               'working folders to empty. Continue?')) {
+  if (!confirm('This will move this run\'s outputs into archive/{topic}_{date}/ and reset the working folders to empty. Continue?')) {
     return;
   }
   logOffset = 0; lastLogCount = 0;
@@ -697,7 +949,7 @@ async function archiveAndReset() {
   const r = await fetch('/api/run/run_archive.py', { method:'POST' });
   const d = await r.json();
   if (!d.ok) showToast(d.error, 'err');
-  else showToast('Archiving…', 'ok');
+  else showToast('Archiving...', 'ok');
 }
 
 // ── Status polling ────────────────────────────────────────────────────────────
@@ -705,7 +957,6 @@ async function poll() {
   try {
     const r = await fetch('/api/status');
     const d = await r.json();
-    lastRunning = !!d.running;
     updateStatus(d);
     updatePhases(d.phases);
     updateStats(d.fs);
@@ -848,6 +1099,7 @@ loadConfig();
 poll();
 setInterval(poll, 1500);
 </script>
+{%- endraw -%}
 </body>
 </html>
 """
