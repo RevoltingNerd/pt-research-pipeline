@@ -16,3 +16,5 @@ layer3_clusters*
 layer3_cluster_definitions.json
 .DS_Store
 prompts/.DS_Store
+clinical_impact_ledger.csv
+*_clinical_impact_report_*.md
