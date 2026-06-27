@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20822054.svg)](https://doi.org/10.5281/zenodo.20822054)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20965911.svg)](https://doi.org/10.5281/zenodo.20965911)
 
 # PT Research Pipeline v2
 
