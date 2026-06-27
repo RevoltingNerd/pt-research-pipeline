@@ -73,27 +73,54 @@ def _fetch_esearch(feed_cfg: dict, api_cfg: dict) -> list[dict]:
     api_key    = api_cfg.get("api_key", "")
     delay      = api_cfg.get("request_delay", 0.4)
 
-    params = {
-        "db":      params_cfg.get("db", "pubmed"),
-        "term":    params_cfg.get("term", ""),
-        "retmax":  params_cfg.get("retmax", "100"),
-        "retmode": "json",
-        "usehistory": "n",
-    }
-    if api_key:
-        params["api_key"] = api_key
+    # retmax_total controls the overall cap (default 300, max 10000)
+    # E-utilities paginates in batches of up to 500
+    total_target = int(params_cfg.get("retmax_total", params_cfg.get("retmax", "300")))
+    batch_size   = min(500, total_target)
 
-    try:
-        time.sleep(delay)
-        resp = requests.get(base_url, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        id_list = data.get("esearchresult", {}).get("idlist", [])
-        log.info(f"[{feed_name}] E-utilities returned {len(id_list)} PMIDs")
-        return [{"pmid": pmid, "title": "", "feed_source": feed_name} for pmid in id_list]
-    except Exception as e:
-        log.error(f"E-utilities fetch failed for {feed_name}: {e}")
-        return []
+    all_ids = []
+    retstart = 0
+
+    while retstart < total_target:
+        fetch_n = min(batch_size, total_target - retstart)
+        params = {
+            "db":         params_cfg.get("db", "pubmed"),
+            "term":       params_cfg.get("term", ""),
+            "retmax":     str(fetch_n),
+            "retstart":   str(retstart),
+            "retmode":    "json",
+            "usehistory": "n",
+        }
+        if api_key:
+            params["api_key"] = api_key
+
+        try:
+            time.sleep(delay)
+            resp = requests.get(base_url, params=params, timeout=30)
+            resp.raise_for_status()
+            data    = resp.json()
+            result  = data.get("esearchresult", {})
+            id_list = result.get("idlist", [])
+            count   = int(result.get("count", 0))
+
+            if not id_list:
+                break
+
+            all_ids.extend(id_list)
+            retstart += len(id_list)
+
+            # Stop if we've retrieved everything available
+            if retstart >= count:
+                break
+
+            log.info(f"[{feed_name}] E-utilities page: {len(all_ids)}/{min(total_target, count)} PMIDs retrieved")
+
+        except Exception as e:
+            log.error(f"E-utilities fetch failed for {feed_name} at retstart={retstart}: {e}")
+            break
+
+    log.info(f"[{feed_name}] E-utilities returned {len(all_ids)} PMIDs total")
+    return [{"pmid": pmid, "title": "", "feed_source": feed_name} for pmid in all_ids]
 
 
 def fetch_pubmed_metadata(pmids: list[str], api_cfg: dict) -> dict[str, dict]:
